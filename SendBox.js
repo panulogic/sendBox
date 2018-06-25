@@ -28,9 +28,10 @@
   { module.exports =  Box;
     CISF =  require('./cisf/cisf.js');
   } else
-  { var { ok, not, x, fails, log, warn,  onError, Type, is, r, err, eq
-        }  = CISF;
-  }
+  { }
+  var { ok, not, x, fails, log, warn,   Type, is, r, err, eq
+      }  = CISF;
+
 if (typeof Path === undefined)
 { Path     = require ("path");
 }
