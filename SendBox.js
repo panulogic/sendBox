@@ -16,12 +16,14 @@
 	 =========================================== */
 
 "use strict"
-  const DATA_OF_BOX   = Symbol ('DATA_OF_BOX');
+  const DATA   = Symbol ('DATA');
+  const META   = Symbol ('META');
+
   const Box      = _Box()  ;
 
   var SendBox  = Box;
 
-  SendBox.v    = "0.9.0";
+  SendBox.v    = "0.9.2";
 
   var CISF;
   if (typeof module !== "undefined")
@@ -31,7 +33,6 @@
   { }
   var { ok, not, x, fails, log, warn,   Type, is, r, err, eq
       }  = CISF;
-
 if (typeof Path === undefined)
 { Path     = require ("path");
 }
@@ -44,49 +45,53 @@ if (typeof Fs === undefined)
 function _Box ()
 { return class Box
   { constructor (previousBoxOrName, meta={ })
-    { let arg         = previousBoxOrName;
-      let isDATA_OF_BOX      =  arg === DATA_OF_BOX;
-      if (! previousBoxOrName && ! isDATA_OF_BOX)
+    { let arg          = previousBoxOrName;
+      let  argWasDATA  =  previousBoxOrName === DATA;  
+      if (! previousBoxOrName && ! argWasDATA)
       { onError
         ( `new Box() called without a Box or name
            as the 1st argument.  `
         );
       }
-      if (previousBoxOrName instanceof Box)
-      { this._previous = previousBoxOrName;
-        this._name = `Child of ${ previousBoxOrName}`;
-      } else
-      { this._previous = null;
-        this._name = previousBoxOrName;
-      }
-      this._data          = [];
-      this._sendHandlers    = [];
-      this._followers     = [];
+      this[DATA]            = [];
+      this[META]            = { };
 
-      this._addHandlers   = [];
-      this._eHandlers   = [];
-      this._meta          = meta;
-      this._wasSent       = false;
-      this._error         = null;
+      if (previousBoxOrName instanceof Box)
+      { this[META].previous = previousBoxOrName;
+        this[META].name     = `Child of ${ previousBoxOrName}`;
+      } else
+      { this[META].previous = null;
+        this[META].name     = previousBoxOrName;
+      }
+      this[META].sendHandlers  = [];
+      this[META].followers     = [];
+      this[META].addHandlers   = [];
+      this[META].eHandlers     = [];
+      this[META].meta          = meta;  
+      this[META].wasSent       = false;
+      this[META].error         = null;
     }
 new ()
 { let Box    = this.constructor;
 
   let b      = new Box(this);
 
-  b._creator = this;
+  b[META].creator = this;
   return b;
+}
+data ()
+{ return this[DATA] .concat([]);
 }
     add (... newValues )
     { if (newValues .length > 1)
     { debugger
     }
     newValues.map
-    ( nv => this._data.push (nv)
+    ( nv => this[DATA].push (nv)
     );
 
       let self3 = this;
-      this._addHandlers.map
+      this[META].addHandlers.map
       (efu =>
        { efu.call (this, ... newValues );
        }
@@ -136,9 +141,9 @@ funkFromObject ($specOb)
      let $howManyNeeded= keys.length;
 
      let  myBoxResult     =  self.new();
-     myBoxResult._data[0] = { };
+     myBoxResult[DATA][0] = { };
      let $resultOb        = { };
-     myBoxResult._data[0] = $resultOb;
+     myBoxResult[DATA][0] = $resultOb;
 
      myBoxResult.onAdd
      ( (ob) =>
@@ -150,7 +155,7 @@ funkFromObject ($specOb)
          let howManyWeHave = keys.length;
 
          if ( howManyWeHave === $howManyNeeded)
-         { myBoxResult._data = [myBoxResult._data[0]];
+         { myBoxResult[DATA] = [myBoxResult[DATA][0]];
            myBoxResult.send();
          }
         }
@@ -181,13 +186,13 @@ funkFromObject ($specOb)
    }
 }
 send (... dataArgs )
-{ this._startTime =  new Date().getTime();
+{ this[META].startTime =  new Date().getTime();
   if ( this.wasSent())
   { this.error
     (`Trying to send a Box more than once`
     );
   }
-  let data = this._data;
+  let data = this[DATA];
   if (dataArgs.length )
   { dataArgs.map
     ( dElem =>  data.push (dElem)
@@ -197,7 +202,7 @@ send (... dataArgs )
 
   let self = this;
   let results =
-  this._sendHandlers.map
+  this[META].sendHandlers.map
   (([efunk, followerBox]) =>
    { let handlerResultsArray  ;
      let eFunkX = efunk
@@ -227,7 +232,7 @@ send (... dataArgs )
    });
 
     this.wasSentIsTrue ();
-    if (! this._sendHandlers.length)
+    if (! this[META].sendHandlers.length)
     { try
       { this.notifyBoxLaneDone () ;
       } catch (e)
@@ -239,8 +244,8 @@ send (... dataArgs )
   time (ms, msg="Timeout-Error")
   { let $box  = this;
 
-    this._timeoutMsg = msg;
-    this._maxTime    = ms;
+    this[META].timeoutMsg = msg;
+    this[META].maxTime    = ms;
 
    return this;
   }
@@ -266,13 +271,13 @@ do (...args)
   { if (this.wasSent())
     { let data     = this.data();
       let Box      = this.constructor;
-      let extraBox = new Box (DATA_OF_BOX);
+      let extraBox = new Box (DATA);
       extraBox.onSend (handlerF, ... moreHandlers);
       extraBox.send (... data);
       return this;
     }
     let followerBox  = this.new ();
-    this._sendHandlers.push([handlerF, followerBox]);
+    this[META].sendHandlers.push([handlerF, followerBox]);
     if (moreHandlers.length)
     { followerBox.onSend (... moreHandlers);
     }
@@ -285,15 +290,15 @@ do (...args)
           ${ handlerF}`
         );
       }
-      this._addHandlers.push (handlerF);
+      this[META].addHandlers.push (handlerF);
     }
     notifyBoxLaneDone (  )
-    { if (this._previous)
-     { this._previous.notifyBoxLaneDone ();
+    { if (this[META].previous)
+     { this[META].previous.notifyBoxLaneDone ();
         return this;
      }
-    let start        = this._startTime;
-    let maxAllowed   = this._maxTime;
+    let start        = this[META].startTime;
+    let maxAllowed   = this[META].maxTime;
     let endMs        = new Date().getTime();
     let took         = endMs - start;
     if (maxAllowed === undefined)
@@ -305,7 +310,7 @@ do (...args)
 send() took ${ took} ms 
 which is longer than the max. 
 allowed ${ maxAllowed} ms. 
-Msg: ${ this._timeoutMsg} 
+Msg: ${ this[META].timeoutMsg} 
 `     );
     }
     return this;
@@ -315,19 +320,19 @@ error (e)
   return this;  
 }
     propagateError (e)
-    { this._error = e;
+    { this[META].error = e;
 
-     if (this._previous)
-     { this._previous.propagateError (e);
+     if (this[META].previous)
+     { this[META].previous.propagateError (e);
         return e;
      }
-    this._eHandlers.map
+    this[META].eHandlers.map
     ( eh =>
       { eh.call(this, e);
       }
     );
 
-    if (!   this._eHandlers.length)
+    if (!   this[META].eHandlers.length)
     { err
       (`${ e}`
       );
@@ -341,20 +346,20 @@ error (e)
           ${ handlerF}`
         );
       }
-      this._eHandlers.push (handlerF);
+      this[META].eHandlers.push (handlerF);
       return this;
     }
     data ()
-    { return this._data ;
+    { return this[DATA] ;
     }
     meta ()
-    { return this._meta;
+    { return this[META].meta;
     }
     wasSent ()
-    { return this._wasSent;
+    { return this[META].wasSent;
     }
     wasSentIsTrue ()
-    { this._wasSent = true;
+    { this[META].wasSent = true;
       return this;
     }
     static init ()

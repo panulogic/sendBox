@@ -938,7 +938,7 @@ return;
 		  // can inspect the data it already has and call
 		  // send() on it if they think they now have enough
 
-			let currentData = this._data; // todo: use getters
+			let currentData = this.data(); // todo: use getters
 			let got = currentData.length;
 			let needed = $namesArray.length;
 			if (got === needed)
