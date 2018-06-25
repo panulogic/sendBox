@@ -1,6 +1,6 @@
 {
   "name"        : "sendbox"
-, "version"     : "0.9.0"
+, "version"     : "0.9.1"
 , "description" : "Simple Alternative to Promises"
 , "main"        : "sendbox.js"
 ,
