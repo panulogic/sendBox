@@ -16,23 +16,20 @@
 	 =========================================== */
 
 "use strict"
-  const DATA   = Symbol ('DATA');
-  const META   = Symbol ('META');
+  const SEND_BOX      = _Box()  ;
 
-  const Box      = _Box()  ;
-
-  var SendBox  = Box;
-
-  SendBox.v    = "0.9.2";
+  var SendBox  = SEND_BOX;
+  SendBox.v    = "0.9.3";
 
   var CISF;
   if (typeof module !== "undefined")
-  { module.exports =  Box;
+  { module.exports =  SEND_BOX;
     CISF =  require('./cisf/cisf.js');
   } else
   { }
   var { ok, not, x, fails, log, warn,   Type, is, r, err, eq
       }  = CISF;
+
 if (typeof Path === undefined)
 { Path     = require ("path");
 }
@@ -43,7 +40,10 @@ if (typeof Fs === undefined)
  { }
 
 function _Box ()
-{ return class Box
+{ const DATA   = Symbol ('DATA');
+  const META   = Symbol ('META');
+
+  return class Box
   { constructor (previousBoxOrName, meta={ })
     { let arg          = previousBoxOrName;
       let  argWasDATA  =  previousBoxOrName === DATA;  
