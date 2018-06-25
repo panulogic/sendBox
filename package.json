@@ -1,8 +1,8 @@
 {
-  "name"        : "SendBox"
+  "name"        : "sendbox"
 , "version"     : "0.9.0"
 , "description" : "Simple Alternative to Promises"
-, "main"        : "SendBox.js"
+, "main"        : "sendbox.js"
 ,
   "scripts":
   {  "test": "node test.js"
