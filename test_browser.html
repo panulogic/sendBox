@@ -20,32 +20,27 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Box test_browser</title>
+<title>SendBox test_browser</title>
 
 <script src='./cisf/cisf.js'></script>
 
-<script src="sendBox.js"></script>
+<script src="sendbox.js"></script>
 <script type="text/javascript">
-
-/*
-issue: when delivering box-tests for the browser
-how do we ensure CISF is there as well?
- */
-
 
 testBox ();
 
-
 function testBox ( )
-{
+{ let Box = SEND_BOX ; // short synonym
 
-  let Box = SEND_BOX;
+  mostBasicTest       ();
+  httpTest            ();
 
-	syncTest        		();
-	parTest         		();
+  syncTest        		();
 
-	condTest        		();
-	parAndCondTest  		();
+  parTest         		();
+  condTest        		();
+  parAndCondTest  		();
+
   nodeJsApiTest       ();
 
 	addTest             ();
@@ -56,36 +51,258 @@ function testBox ( )
 	asyncSendTest       ();
 	asyncHandlersTest   ();
   timeoutTest         ();
-  promiseTest  (`sendBox.js ${Box.v} all tests passed`);
+
+  composeTest ();
+
+  promiseTest (`sendBox.js ${Box.v} all tests passed`);
 
 	return;
 
-function msg (s)
+	function msg (s)
+	{
+		console.log("");
+		console.log (s);
+		console.log("");
+		if (typeof document !== "undefined")
+		{ let doc = document;
+			setTimeout
+			( function ()
+				{ if (doc && doc.body && doc.body.innerHTML)
+					 {  doc.body.innerHTML += "<h1>" + s +   "</h1>";
+					 }
+				}
+			, 2000
+			);
+		}
+	}
+
+ /* -------------------------------------
+		  .onSend
+		  ( json =>
+			  { let parsed      = JSON.parse(json);
+			    let arr         = parsed.RestResponse.result;
+			    let rix         = Math.floor (Math.random() * arr.length);
+			    let record      = arr [rix];
+			    let countryName = record.name;
+			    debugger
+			    return countryName;
+			  }
+		  );
+		  ---------------------------------- */
+/*
+point: When you return a box its future results
+will be automatically sent to the next handler.
+If you add an onsend handler to that box here
+that handler will also get executed BUT tits
+reuslt will vanish in thin air unless you also
+added  follower handlers to it.
+
+You should not add handlers to the box you return
+because system will do that for you. But the
+system added handler will executed in a
+parallel lane of its own you can not talk to
+that in any way.
+
+Point is in async you muts end in some final
+function which has a side-effect, so it better
+typiocally be a single end point so you know
+where to observe the creation of the side-effect
+adn where to test it.
+ */
+
+// "http://www.google.com?q=" + countryName
+
+
+
+	function composeTest ()
+	{
+		if (typeof require === "undefined")
+		{ return;
+		}
+
+    new Box().onSend
+    ( produceCountriesList
+    , selectCountry
+    , retrieveCapitals
+    , tellCountryAndCapital
+    ).send ("http://country.io/names.json") ;
+
+	  function produceCountriesList ( url )
+		{
+		  return getBoxFromUrl (url )
+		}
+
+		function selectCountry (json )
+		{
+		  let codeToCountryName = JSON.parse(json);
+			let keys        = Object.keys (codeToCountryName);
+			let rix         = Math.floor (Math.random() * keys.length);
+			let key         = keys [rix];
+			let countryName = codeToCountryName [key];
+			return [key, countryName];
+		}
+
+
+		function retrieveCapitals (countryCode, countryName )
+		{ let b = getBoxFromUrl
+		  ( "http://country.io/capital.json"
+		  );
+		  b.add (countryCode)
+		   .add (countryName)
+		   ;
+      return b;
+		}
+    // "http://restcountries.eu/rest/v2/name/"+ countryName
+		// SEE also: https://github.com/apilayer/restcountries
+
+    function tellCountryAndCapital (countryCode, countryName, capitalsJson)
+		{
+		   let capitals = JSON.parse (capitalsJson);
+		   let capital  = capitals [countryCode] ;
+		   let s        = `Capital of ${countryName} is ${capital}`;
+			 log(`\n${s}\n`);
+		   debugger
+		}
+	}
+
+
+/*
+SOME OPEN DATA RESOURCES:
+
+// SEE ALSO: https://data.cityofnewyork.us/resource/hpgt-r7uq.json
+
+// maybe better: https://data.cityofnewyork.us/City-Government/Bid-Tabulations/9k82-ys7w
+// yes because updated weekly
+// api: https://data.cityofnewyork.us/resource/rnaw-im4y.json
+
+// AND: wifi hotspot locations:
+// https://data.cityofnewyork.us/City-Government/NYC-Wi-Fi-Hotspot-Locations/yjub-udmw
+// curl https://data.cityofnewyork.us/resource/24t3-xqyv.json
+*/
+
+  function getUrlPromise (url)
+	{ return getBoxFromUrl (url ).promise();
+	}
+
+//	  url = 'http://www.google.com/';
+
+  function getBoxFromUrl (url )
+	{
+	  let box = new Box();
+	  box.onError
+	  ( e =>
+			{ debugger
+			  log ("getUrl() error: " + e);
+			}
+		);
+
+		let content = '';
+		let gotData = false;
+
+    require("http").get
+		( url
+		, response =>
+			{ response.setEncoding('utf8');
+
+			  response.on
+				('data'
+				, (d) =>
+					{ let resp = response;
+					  gotData = true;
+					  content += d;
+					  // console.log('got data');
+
+					}
+				);
+
+				response.on
+				('end'
+				, (what) =>
+				 { let resp = response;
+				   // console.log ('ended');
+				   if (gotData)
+					 {
+             /*
+             This is what was happening, the first response from
+             twitter is status 301: Moved permanently and
+             resp.headers.location === "https://twitter.com/ClassCloudLLC"
+             meaning the httpS url. But then does node make
+             ahttps request then automatically?
+             If I try so start with https url I get an error.
+
+              */
+					   box.send (content);
+					 }
+				 }
+				);
+
+			}
+		 );
+		return box ;
+	}
+
+
+		/*---------------------------------------------------
+			let xhr = new XMLHttpRequest();
+			xhr.onreadystatechange =
+				(content) =>
+				{ debugger
+					box.send(content)
+				};
+			xhr.open('GET', url);
+			xhr.send();
+			return box.promise() ;
+
+			// http-tests only runs on Node.js.
+			// Because of the cross-origin restrictions
+			// on browsers a html-file can not easily
+			// use ajax to load content from the web.
+			------------------------------------------------*/
+
+async function httpTest ()
 {
-  console.log("");
-  console.log (s);
-  console.log("");
-  if (typeof document !== "undefined")
-  { let doc = document;
-    setTimeout
-    ( function ()
-      { if (doc && doc.body && doc.body.innerHTML)
-         {  doc.body.innerHTML += "<h1>" + s +   "</h1>";
-         }
-      }
-    , 2000
-    );
-  }
+  if (typeof require === "undefined")
+	{ return;
+	}
+
+  let content = await getUrlPromise ('http://www.google.com/' );
+  if (content &&  content.match(/doctype/i))
+	{ log (`!
+	HTTP httpTest() succeeded got web-content.
+	!`);
+	} else
+	{ log (`!
+	HTTP ERROR: httpTest() FAILED how's your net-connection?
+	!`);
+	}
+  return;
 }
+
+function mostBasicTest ()
+{
+  let SendBox = Box ;
+
+  let box = new Box();
+  let result;
+  box.onSend ( x => result = x );
+  box.send (5)
+  ok (result === 5);
+
+  box = new SendBox();
+  box.onSend ( x => result = x );
+  setTimeout(() => box.send (5), 500);
+  setTimeout
+  ( () =>
+		{ ok (result === 5);
+    }
+  , 700
+  );
+
+}
+
 
 function syncTest ()
 {
-  fails (_=>  new Box());
-  // fails because the constructor expects either
-  // a name for the box or a predecessor box as
-  // argument. Usually you would not care about
-  // predecessors because followers are automaitically
-  // created when you call onSend() with multiple handlers.
 
   let box = getBox ();
 
@@ -384,15 +601,7 @@ function addTest ()
  b2.add(2);
  fails (_=> b.send()); // can not send more than once
 
- b2.send()
-
- fails (_=>  new Box());
-  // fails because the constructor expects either
-  // a name for the box or a predecessor box as
-  // argument. Usually you would not care about
-  // predecessors because followers are automaitically
-  // created when you call onSend() with multiple handlers.
-
+  b2.send()
   let box = getBox ();
 
   ok ( box.onSend (fa, fb, fc) === box );

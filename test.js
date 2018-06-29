@@ -15,21 +15,28 @@
 
 	 =========================================== */
 
+
 let {ok, fails, x, log, err, eq
     } = require ('./cisf/cisf.js');
 
-let Box = require ("../sendBox");
+let SendBox   = require ("../sendBox");
 
 testBox ();
 
 
 function testBox ( )
-{
+{ let Box = SendBox ; // Box is  a shorter synonym
+  let $errors = [];
+
+  mostBasicTest       ();
+  httpTest            ();
+
 	syncTest        		();
+
 	parTest         		();
-	
 	condTest        		();
 	parAndCondTest  		();
+
   nodeJsApiTest       ();
 
 	addTest             ();
@@ -40,12 +47,25 @@ function testBox ( )
 	asyncSendTest       ();
 	asyncHandlersTest   ();
   timeoutTest         ();
-  promiseTest  (`sendBox.js ${Box.v} all tests passed`);
+
+  composeTest ();
+
+  promiseTest (`sendBox.js ${Box.v} all tests passed`);
 
 	return;
 
-function msg (s)
-{
+function tell_tests_passed (s)
+{ s = `SendBox ${Box.v} tests passed.`;
+
+if (typeof require === 'undefined')
+{ s = `<h1>${s}</h1>`;
+ s += `
+<pre><tt>
+${testCisf}
+</tt></pre>
+`;
+}
+
   console.log("");
   console.log (s);
   console.log("");
@@ -54,22 +74,193 @@ function msg (s)
     setTimeout
     ( function ()
       { if (doc && doc.body && doc.body.innerHTML)
-         {  doc.body.innerHTML += "<h1>" + s +   "</h1>";
+         {  doc.body.innerHTML +=  s  ;
          }
       }
-    , 2000
+    , 1000
     );
   }
 }
 
+ /* -------------------------------------
+		  .onSend
+		  ( json =>
+			  { let parsed      = JSON.parse(json);
+			    let arr         = parsed.RestResponse.result;
+			    let rix         = Math.floor (Math.random() * arr.length);
+			    let record      = arr [rix];
+			    let countryName = record.name;
+			    debugger
+			    return countryName;
+			  }
+		  );
+		  ---------------------------------- */
+/*
+point: When you return a box its future results
+will be automatically sent to the next handler.
+If you add an onsend handler to that box here
+that handler will also get executed BUT tits
+reuslt will vanish in thin air unless you also
+added  follower handlers to it.
+
+You should not add handlers to the box you return
+because system will do that for you. But the
+system added handler will executed in a
+parallel lane of its own you can not talk to
+that in any way.
+
+Point is in async you muts end in some final
+function which has a side-effect, so it better
+typiocally be a single end point so you know
+where to observe the creation of the side-effect
+adn where to test it.
+ */
+
+// "http://www.google.com?q=" + countryName
+
+		  
+		  
+	function composeTest ()
+	{
+
+    new Box().onSend
+    ( produceCountriesList
+    , selectCountry
+    , retrieveCapitals
+    , tellCountryAndCapital
+    ).send ("http://country.io/names.json") ;
+
+	  function produceCountriesList ( url )
+		{ return Box.fromUrl (url)
+		}
+
+		function selectCountry (json )
+		{
+		  let codesToNames = JSON.parse(json);
+			let keys         = Object.keys (codesToNames);
+			let rix          = Math.floor (Math.random() * keys.length);
+			let key          = keys [rix];
+			let countryName  = codesToNames [key];
+			return [key, countryName];
+		}
+
+    function retrieveCapitals (countryCode, countryName )
+	  { let b = Box.fromUrl ("http://country.io/capital.json");
+		  b.add (countryCode)
+		   .add (countryName);
+      return b;
+	  }
+
+    function tellCountryAndCapital (countryCode, countryName, capitalsJson)
+		{
+		   let capitals = JSON.parse (capitalsJson);
+		   let capital  = capitals [countryCode] ;
+		   let s        = `Capital of ${countryName} is ${capital}`;
+			 log(`\n${s}\n`);
+
+		}
+	}
+
+
+		  // beware if a url does not exist you often
+		  // get an error page with status 200 . Then
+		  // the only error will be when we try to
+		  // parse html as json.
+
+
+    // "http://restcountries.eu/rest/v2/name/"+ countryName
+		// SEE also: https://github.com/apilayer/restcountries
+
+/*
+SOME OPEN DATA RESOURCES:
+
+// SEE ALSO: https://data.cityofnewyork.us/resource/hpgt-r7uq.json
+
+// maybe better: https://data.cityofnewyork.us/City-Government/Bid-Tabulations/9k82-ys7w
+// yes because updated weekly
+// api: https://data.cityofnewyork.us/resource/rnaw-im4y.json
+
+// AND: wifi hotspot locations:
+// https://data.cityofnewyork.us/City-Government/NYC-Wi-Fi-Hotspot-Locations/yjub-udmw 
+// curl https://data.cityofnewyork.us/resource/24t3-xqyv.json
+*/
+ 
+  function getUrlPromise (url)
+	{ return Box.fromUrl (url ).promise();
+	}
+
+//	  url = 'http://www.google.com/';
+
+
+
+		/*---------------------------------------------------
+			let xhr = new XMLHttpRequest();
+			xhr.onreadystatechange =
+				(content) =>
+				{ debugger
+					box.send(content)
+				};
+			xhr.open('GET', url);
+			xhr.send();
+			return box.promise() ;
+
+			// http-tests only runs on Node.js.
+			// Because of the cross-origin restrictions
+			// on browsers a html-file can not easily
+			// use ajax to load content from the web.
+			------------------------------------------------*/
+
+async function httpTest ()
+{
+  if (typeof require === "undefined")
+	{ debugger
+	// todo the html test should be executed\
+	// from github and it should download
+	// the file test.js .
+	 return;
+	}
+
+// TODO: Donwload package.json from github.io
+
+
+  let content = await getUrlPromise ('http://www.google.com/' );
+  if (content &&  content.match(/doctype/i))
+	{ log (`!
+	HTTP httpTest() succeeded got web-content.
+	!`);
+	} else
+	{ log (`!
+	HTTP ERROR: httpTest() FAILED how's your net-connection? 
+	!`);
+	}
+  return;
+}
+
+function mostBasicTest ()
+{
+  let SendBox = Box ;
+
+  let box = new Box();
+  let result;
+  box.onSend ( x => result = x );
+  box.send (5)
+  ok (result === 5);
+
+  box = new SendBox();
+  box.onSend ( x => result = x );
+  setTimeout(() => box.send (5), 500);
+  setTimeout
+  ( () =>
+		{ ok (result === 5);
+    }
+  , 700
+  );
+
+}
+
+
 function syncTest ()
 {
-  fails (_=>  new Box());
-  // fails because the constructor expects either
-  // a name for the box or a predecessor box as
-  // argument. Usually you would not care about
-  // predecessors because followers are automaitically
-  // created when you call onSend() with multiple handlers.
 
   let box = getBox ();
 
@@ -368,15 +559,7 @@ function addTest ()
  b2.add(2);
  fails (_=> b.send()); // can not send more than once
 
- b2.send()
-
- fails (_=>  new Box());
-  // fails because the constructor expects either
-  // a name for the box or a predecessor box as
-  // argument. Usually you would not care about
-  // predecessors because followers are automaitically
-  // created when you call onSend() with multiple handlers.
-
+  b2.send()
   let box = getBox ();
 
   ok ( box.onSend (fa, fb, fc) === box );
@@ -672,8 +855,30 @@ function asyncHandlersTest ()
 
 }
 
+/**
+* In  timeoutTest() boxA causes no error because
+* it has two handlers in in its pipeline fa and
+* fb which are both synchronous.
+*
+* boxB has handler fC() which stops the
+* pippeline until 56ms has passed and therefore
+* causes a time-error because both boxes are
+* given only time(55) so fc can not possibly
+* end in 55 since it only starts after 56
+* has passed.
+* 
+* If you set time() then ALL stages of the
+* pipeline must complete in this time, or
+* an error is created. If you also set an
+* error-0handler then that is called for
+* the time-error as well.
+*
+* Below we dont realy test for the errors
+* but you should see the one timing error
+* on the log.
+*/
 
-function timeoutTest ()
+	function timeoutTest ()
 {
 
 	let $TIME_ALLOWED  = 55;//  -1 ;
@@ -696,13 +901,13 @@ function timeoutTest ()
 boxA.onSend
 ( arg =>
 	{ ok(arg === "boxA-data");
-	  log(`boxA done again: ${arg}`);
+	  log(`boxA done: ${arg}`);
 	}
 ) ;
 boxB.onSend
 ( arg =>
 	{ ok (arg === "boxB-data")
-	  log(`boxB done again: ${arg}`);
+	  log(`boxB done: ${arg}`);
 	}
 );
 
@@ -733,7 +938,6 @@ return;
 	function fC(arg )
 	{
 	  let box = new Box('Created by fC');
-
 
 	  setTimeout
 		( () => box.send()
@@ -873,17 +1077,18 @@ return;
 
   function getDirEnts ()
   {
-	  let box = new Box ('getDirEnts');
+	  let box = new Box ('getDirEnts'); // reurns an instance of public Box
     Fs.readdir (__dirname,  cb);
     return box;
 
 	  function cb(e, entsArray )
-	  { box.send ( ... entsArray );
+	  {  box.send ( ... entsArray );
 	  }
   }
 
 	function gotDirEnts(... $namesArray)
-	{ let statsBox = new Box ('statsBox');
+	{
+	  let statsBox = new Box ('statsBox');
 
 		statsBox.onAdd  (addStat);
 		statsBox.onSend (gotAll)
@@ -1026,7 +1231,7 @@ function promiseTest (allTestsPassedMsg)
 		ok  (trace.awaited     === 'AWAITED');
     log (`checkTheFuture () PASSED`);
 
-    msg (allTestsPassedMsg) ;
+    tell_tests_passed (allTestsPassedMsg) ;
 	}
 }
 
