@@ -19,7 +19,7 @@
   const SEND_BOX      = _Box()  ;
 
   var SendBox  = SEND_BOX;
-  SendBox.v    = "0.9.6";
+  SendBox.v    = "0.9.7";
 
   var CISF;
   if (typeof module !== "undefined")
@@ -115,7 +115,7 @@
 
         if (previousBoxOrName instanceof InnerBox)
         { this[META].previous = previousBoxOrName;
-          this[META].name     = `Child of ${ previousBoxOrName}`;
+          this[META].name     = `CHILD of ${ previousBoxOrName}`;
         } else
         { this[META].previous = null;
           this[META].name     = previousBoxOrName;
@@ -136,48 +136,70 @@
 
       function fromUrl_node (url, Box)
       { let box = new Box();
+        let $URL = url;
 
         box.onError
-        ( e =>
-          { debugger
-            log (`
-            getUrl() error:   ${ e} 
-            ${ e.stack}
-            `
-            );
-          }
+        (  EH_of_fromUrl_node
         );
 
         let content = '';
         let gotData = false;
 
-        require("http").get
-        ( url
-        , response =>
-          { response.setEncoding('utf8');
-
-            response.on
-            ('data'
-            , (d) =>
-              { let resp = response;
-                let u = url;
-                gotData  = true;
-                content += d;
-              }
-            );
-
-            response.on
-            ('end'
-            , (what) =>
-             { let resp = response;
-               if (gotData)
-               { box.send (content);
-               }
-             }
-            );
-          }
-         );
+        let transport = require("http");
+        if (url.match(/^https/i))
+        { transport = require("https");
+        }
+        try
+        { transport.get
+          ( url
+          , responseHandler
+          ) .on('error', errorHandler);
+        } catch (e)
+        { debugger; debugger;
+          box.error(e);
+        }
         return box ;
+
+function EH_of_fromUrl_node (e)
+{ let url = $URL;
+   this.E_HANDLERS = this[META].eHandlers;
+
+   if ((e + "").match (/TIMEDOUT/i) )
+  { debugger
+  }
+  log (`
+  EH_of_fromUrl_node() error trying to 
+  GET the url 
+  ${ url}
+  ${ e} 
+  `)
+}
+
+    function responseHandler (response)
+    { response.setEncoding('utf8');
+      response.on ('data', dataHandler);
+      response.on ('end' , endHandler);
+
+         function dataHandler (d)
+         { let resp = response;
+           let u    = url;
+           gotData  = true;
+           content += d;
+        }
+
+         function endHandler (what)
+         { let resp = response;
+           if (gotData)
+           { box.send (content);
+           }
+         }
+    }
+
+         function errorHandler (e)
+         { log (`ERROR for ${ box}`);
+           debugger
+           box.error(e);
+         }
       }
 
       function fromUrl_browser (url, Box)
@@ -509,16 +531,16 @@ if (handlerResultsArray === undefined)
       propagateError (e)
       { this[META].error = e;
 
-       if (this[META].previous)
-       { this[META].previous.propagateError (e);
-         return e;
-       }
       this[META].eHandlers.map
       ( eh =>
         { eh.call(this, e);
         }
       );
 
+      if (this[META].previous)
+      { this[META].previous.propagateError (e);
+        return e;
+      }
       if (!   this[META].eHandlers.length)
       { err
         (`${ e}`

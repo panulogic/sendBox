@@ -29,7 +29,9 @@ function testBox ( )
   let $errors = [];
 
   mostBasicTest       ();
-  httpTest            ();
+  httpTestWithBox     ();
+  httpTestWithAwait   ();
+  composeTest         ();
 
 	syncTest        		();
 
@@ -48,7 +50,7 @@ function testBox ( )
 	asyncHandlersTest   ();
   timeoutTest         ();
 
-  composeTest ();
+
 
   promiseTest (`sendBox.js ${Box.v} all tests passed`);
 
@@ -189,52 +191,94 @@ SOME OPEN DATA RESOURCES:
 	{ return Box.fromUrl (url ).promise();
 	}
 
-//	  url = 'http://www.google.com/';
 
 
-
-		/*---------------------------------------------------
-			let xhr = new XMLHttpRequest();
-			xhr.onreadystatechange =
-				(content) =>
-				{ debugger
-					box.send(content)
-				};
-			xhr.open('GET', url);
-			xhr.send();
-			return box.promise() ;
-
-			// http-tests only runs on Node.js.
-			// Because of the cross-origin restrictions
-			// on browsers a html-file can not easily
-			// use ajax to load content from the web.
-			------------------------------------------------*/
-
-async function httpTest ()
+async function httpTestWithAwait ()
 {
-  if (typeof require === "undefined")
-	{ debugger
-	// todo the html test should be executed\
-	// from github and it should download
-	// the file test.js .
-	 return;
-	}
 
-// TODO: Donwload package.json from github.io
+  let u = 'https://panulogic.github.io/sendbox/package.json';
+  // if the host does not exist we get a different
+  // error because if host does but url does not exist
+  // then the site typically gives us an error page.
+
+  let content = await
+  getUrlPromise (u)
+  .catch
+  ( e =>
+    { debugger
+       // Below we just report if we didn't
+        // get the content, do nopt cause an error.
+    }
+  );
+  // Note if you use promises and awaits
+  // then you must use their error-handlilnng
+  // mechanism to handle errros as well.
+  // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await
 
 
-  let content = await getUrlPromise ('http://www.google.com/' );
-  if (content &&  content.match(/doctype/i))
-	{ log (`!
-	HTTP httpTest() succeeded got web-content.
-	!`);
+  if (content &&  content.match(/sendbox/i))
+	{ log (` 
+	HTTP-TEST succeeded httpTest() got sendbox package.json
+	from ${u}.
+	 `);
 	} else
-	{ log (`!
-	HTTP ERROR: httpTest() FAILED how's your net-connection? 
-	!`);
+	{ log (` 
+	   HTTP-TEST ERROR: httpTest() FAILED. 
+	   This would happen if the url
+	   ${u}
+	   does not exist or does not have content
+	   containing the word 'sendbox'.
+	   Also check your net-connection. 
+	 `);
 	}
   return;
 }
+
+
+function httpTestWithBox ()
+{
+
+  let u = 'https://panulogic.github.io/sendbox/package.json';
+  let content = '';
+
+  let box =  Box . fromUrl (u);
+  box.onError(EH_in_httpTestWithBox);
+
+
+function EH_in_httpTestWithBox (e)
+{ debugger
+     log (` 
+	   HTTP-TEST ERROR: httpTestWithBox() FAILED
+	   to get url
+	   ${u}.
+     Maybe the website no longer exists or is down.
+	   ${e} .
+	 `);
+ }
+
+  box.onSend
+	( c =>
+		{ debugger
+		  content = c;
+		  if (  content.match(/sendbox/i))
+	       { log (` 
+	HTTP-TEST succeeded httpTestWithBox() got sendbox package.json
+	from ${u}.
+	 `);
+	} else
+	{   log (` 
+	   HTTP-TEST ERROR: httpTestWithBox() FAILED. 
+	   The content of 
+	   ${u}
+	   does not contain the string 'sendbox'
+	 `);
+	}
+		}
+	)
+
+  return;
+}
+
 
 function mostBasicTest ()
 {
