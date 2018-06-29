@@ -19,7 +19,7 @@
   const SEND_BOX      = _Box()  ;
 
   var SendBox  = SEND_BOX;
-  SendBox.v    = "0.9.7";
+  SendBox.v    = "0.9.8";
 
   var CISF;
   if (typeof module !== "undefined")
@@ -205,14 +205,29 @@ function EH_of_fromUrl_node (e)
       function fromUrl_browser (url, Box)
       { let box = new Box();
         let xhr = new XMLHttpRequest();
-        xhr.onreadystatechange =
-          (content) =>
-          { debugger
-            box.send(content)
+        let $xhr = xhr;
+        xhr.onreadystatechange 
+
+          function (evt)
+          { let xhr = $xhr;
+            let me = this;
+
+            if( xhr.readyState === 4 )
+            { if (xhr.status === 200 )
+              { box.send (xhr.responseText);
+              } else
+               { box.error
+                 (`
+http.get() returned status
+${ xhr.status} for url
+${ url}.
+                 `);
+               }
+            }
           };
         xhr.open('GET', url);
         xhr.send();
-        return box.promise() ;
+        return box  ;
       }
     }
     static runningOnNode ()

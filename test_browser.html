@@ -27,19 +27,43 @@
 <script src="sendbox.js"></script>
 <script type="text/javascript">
 
+
+
 testBox ();
 
 function testBox ( )
-{ let Box = SEND_BOX ; // short synonym
+{
+
+/* =========================================
+   Copyright 2018 Class Cloud LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ =========================================== */
+
+  let Box = SendBox ; // Box is  a shorter synonym
+  let $errors = [];
 
   mostBasicTest       ();
-  httpTest            ();
+  httpTestWithBox     ();
+  httpTestWithAwait   ();
+  composeTest         ();
 
-  syncTest        		();
+	syncTest        		();
 
-  parTest         		();
-  condTest        		();
-  parAndCondTest  		();
+	parTest         		();
+	condTest        		();
+	parAndCondTest  		();
 
   nodeJsApiTest       ();
 
@@ -52,63 +76,40 @@ function testBox ( )
 	asyncHandlersTest   ();
   timeoutTest         ();
 
-  composeTest ();
+
 
   promiseTest (`sendBox.js ${Box.v} all tests passed`);
 
 	return;
 
-	function msg (s)
-	{
-		console.log("");
-		console.log (s);
-		console.log("");
-		if (typeof document !== "undefined")
-		{ let doc = document;
-			setTimeout
-			( function ()
-				{ if (doc && doc.body && doc.body.innerHTML)
-					 {  doc.body.innerHTML += "<h1>" + s +   "</h1>";
-					 }
-				}
-			, 2000
-			);
-		}
-	}
+function tell_tests_passed (s)
+{ s = `SendBox ${Box.v} tests passed.`;
 
- /* -------------------------------------
-		  .onSend
-		  ( json =>
-			  { let parsed      = JSON.parse(json);
-			    let arr         = parsed.RestResponse.result;
-			    let rix         = Math.floor (Math.random() * arr.length);
-			    let record      = arr [rix];
-			    let countryName = record.name;
-			    debugger
-			    return countryName;
-			  }
-		  );
-		  ---------------------------------- */
-/*
-point: When you return a box its future results
-will be automatically sent to the next handler.
-If you add an onsend handler to that box here
-that handler will also get executed BUT tits
-reuslt will vanish in thin air unless you also
-added  follower handlers to it.
+if (typeof require === 'undefined')
+{ s = `<h1>${s}</h1>`;
+ s += `
+<pre><tt>
+${testBox}
+</tt></pre>
+`;
+}
 
-You should not add handlers to the box you return
-because system will do that for you. But the
-system added handler will executed in a
-parallel lane of its own you can not talk to
-that in any way.
+  console.log("");
+  console.log (s);
+  console.log("");
+  if (typeof document !== "undefined")
+  { let doc = document;
+    setTimeout
+    ( function ()
+      { if (doc && doc.body && doc.body.innerHTML)
+         {  doc.body.innerHTML +=  s  ;
+         }
+      }
+    , 1000
+    );
+  }
+}
 
-Point is in async you muts end in some final
-function which has a side-effect, so it better
-typiocally be a single end point so you know
-where to observe the creation of the side-effect
-adn where to test it.
- */
 
 // "http://www.google.com?q=" + countryName
 
@@ -116,9 +117,6 @@ adn where to test it.
 
 	function composeTest ()
 	{
-		if (typeof require === "undefined")
-		{ return;
-		}
 
     new Box().onSend
     ( produceCountriesList
@@ -128,32 +126,25 @@ adn where to test it.
     ).send ("http://country.io/names.json") ;
 
 	  function produceCountriesList ( url )
-		{
-		  return getBoxFromUrl (url )
+		{ return Box.fromUrl (url)
 		}
 
 		function selectCountry (json )
 		{
-		  let codeToCountryName = JSON.parse(json);
-			let keys        = Object.keys (codeToCountryName);
-			let rix         = Math.floor (Math.random() * keys.length);
-			let key         = keys [rix];
-			let countryName = codeToCountryName [key];
+		  let codesToNames = JSON.parse(json);
+			let keys         = Object.keys (codesToNames);
+			let rix          = Math.floor (Math.random() * keys.length);
+			let key          = keys [rix];
+			let countryName  = codesToNames [key];
 			return [key, countryName];
 		}
 
-
-		function retrieveCapitals (countryCode, countryName )
-		{ let b = getBoxFromUrl
-		  ( "http://country.io/capital.json"
-		  );
+    function retrieveCapitals (countryCode, countryName )
+	  { let b = Box.fromUrl ("http://country.io/capital.json");
 		  b.add (countryCode)
-		   .add (countryName)
-		   ;
+		   .add (countryName);
       return b;
-		}
-    // "http://restcountries.eu/rest/v2/name/"+ countryName
-		// SEE also: https://github.com/apilayer/restcountries
+	  }
 
     function tellCountryAndCapital (countryCode, countryName, capitalsJson)
 		{
@@ -161,122 +152,108 @@ adn where to test it.
 		   let capital  = capitals [countryCode] ;
 		   let s        = `Capital of ${countryName} is ${capital}`;
 			 log(`\n${s}\n`);
-		   debugger
+
 		}
 	}
 
 
-/*
-SOME OPEN DATA RESOURCES:
+		  // beware if a url does not exist you often
+		  // get an error page with status 200 . Then
+		  // the only error will be when we try to
+		  // parse html as json.
 
-// SEE ALSO: https://data.cityofnewyork.us/resource/hpgt-r7uq.json
-
-// maybe better: https://data.cityofnewyork.us/City-Government/Bid-Tabulations/9k82-ys7w
-// yes because updated weekly
-// api: https://data.cityofnewyork.us/resource/rnaw-im4y.json
-
-// AND: wifi hotspot locations:
-// https://data.cityofnewyork.us/City-Government/NYC-Wi-Fi-Hotspot-Locations/yjub-udmw
-// curl https://data.cityofnewyork.us/resource/24t3-xqyv.json
-*/
 
   function getUrlPromise (url)
-	{ return getBoxFromUrl (url ).promise();
-	}
-
-//	  url = 'http://www.google.com/';
-
-  function getBoxFromUrl (url )
-	{
-	  let box = new Box();
-	  box.onError
-	  ( e =>
-			{ debugger
-			  log ("getUrl() error: " + e);
-			}
-		);
-
-		let content = '';
-		let gotData = false;
-
-    require("http").get
-		( url
-		, response =>
-			{ response.setEncoding('utf8');
-
-			  response.on
-				('data'
-				, (d) =>
-					{ let resp = response;
-					  gotData = true;
-					  content += d;
-					  // console.log('got data');
-
-					}
-				);
-
-				response.on
-				('end'
-				, (what) =>
-				 { let resp = response;
-				   // console.log ('ended');
-				   if (gotData)
-					 {
-             /*
-             This is what was happening, the first response from
-             twitter is status 301: Moved permanently and
-             resp.headers.location === "https://twitter.com/ClassCloudLLC"
-             meaning the httpS url. But then does node make
-             ahttps request then automatically?
-             If I try so start with https url I get an error.
-
-              */
-					   box.send (content);
-					 }
-				 }
-				);
-
-			}
-		 );
-		return box ;
+	{ return Box.fromUrl (url ).promise();
 	}
 
 
-		/*---------------------------------------------------
-			let xhr = new XMLHttpRequest();
-			xhr.onreadystatechange =
-				(content) =>
-				{ debugger
-					box.send(content)
-				};
-			xhr.open('GET', url);
-			xhr.send();
-			return box.promise() ;
 
-			// http-tests only runs on Node.js.
-			// Because of the cross-origin restrictions
-			// on browsers a html-file can not easily
-			// use ajax to load content from the web.
-			------------------------------------------------*/
-
-async function httpTest ()
+async function httpTestWithAwait ()
 {
-  if (typeof require === "undefined")
-	{ return;
-	}
 
-  let content = await getUrlPromise ('http://www.google.com/' );
-  if (content &&  content.match(/doctype/i))
-	{ log (`!
-	HTTP httpTest() succeeded got web-content.
-	!`);
+  let u = 'https://panulogic.github.io/sendbox/package.json';
+  // If the host does not exist we get a different
+  // error because if host does but url does not exist
+  // then the site typically gives us an error page.
+
+  let content = await
+  getUrlPromise (u)
+  .catch
+  ( e =>
+    {   // Below we just report if we didn't
+        // get the content, do nopt cause an error.
+    }
+  );
+  // Note if you use promises and awaits
+  // then you must use their error-handlilnng
+  // mechanism to handle errros as well.
+  // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await
+
+
+  if (content &&  content.match(/sendbox/i))
+	{ log (`
+	HTTP-TEST succeeded httpTest() got sendbox package.json
+	from ${u}.
+	 `);
 	} else
-	{ log (`!
-	HTTP ERROR: httpTest() FAILED how's your net-connection?
-	!`);
+	{ log (`
+	   HTTP-TEST ERROR: httpTest() FAILED.
+	   This would happen if the url
+	   ${u}
+	   does not exist or does not have content
+	   containing the word 'sendbox'.
+	   Also check your net-connection.
+	 `);
 	}
   return;
 }
+
+
+function httpTestWithBox ()
+{
+
+  let u = 'https://panulogic.github.io/sendbox/package.json';
+  let content = '';
+
+  let box =  Box . fromUrl (u);
+  box.onError(EH_in_httpTestWithBox);
+
+
+function EH_in_httpTestWithBox (e)
+{
+     log (`
+	   HTTP-TEST ERROR: httpTestWithBox() FAILED
+	   to get url
+	   ${u}.
+     Maybe the website no longer exists or is down.
+	   ${e} .
+	 `);
+ }
+
+  box.onSend
+	( c =>
+		{
+		  content = c;
+		  if (  content.match(/sendbox/i))
+	       { log (`
+	HTTP-TEST succeeded httpTestWithBox() got sendbox package.json
+	from ${u}.
+	 `);
+	} else
+	{   log (`
+	   HTTP-TEST ERROR: httpTestWithBox() FAILED.
+	   The content of
+	   ${u}
+	   does not contain the string 'sendbox'
+	 `);
+	}
+		}
+	)
+
+  return;
+}
+
 
 function mostBasicTest ()
 {
@@ -344,13 +321,13 @@ function syncTest ()
 	ok (fc_result[0] === 1000); // 1 * 10 * 10 * 10
 
 	fails (_=> boxA.send (4,5,6));
-  // fails because a box can be sent only ONCE.
+  // fails because a box can be sent ONLY ONCE.
   // Because async computation basically relies
   // on side-effects you typically want each
   // side-effect to happen only once so it is
   // PROBABALY a coding error if it would happen
   // multiple times. You can always create another
-  // similar box if ytou want the same effect
+  // similar box if you want the same effect
   // multiple times.
 
 	return ;
@@ -688,8 +665,7 @@ function errorTest ()
 	  return n * 10;
 	}
 	function fc  (n, ... moreArgs)
-	{ debugger
-	  throw "we never come here because earlier an error stopped the pipeline"
+	{ throw "we never come here because earlier an error stopped the pipeline"
 	}
 }
 
@@ -897,8 +873,30 @@ function asyncHandlersTest ()
 
 }
 
+/**
+* In  timeoutTest() boxA causes no error because
+* it has two handlers in in its pipeline fa and
+* fb which are both synchronous.
+*
+* boxB has handler fC() which stops the
+* pippeline until 56ms has passed and therefore
+* causes a time-error because both boxes are
+* given only time(55) so fc can not possibly
+* end in 55 since it only starts after 56
+* has passed.
+*
+* If you set time() then ALL stages of the
+* pipeline must complete in this time, or
+* an error is created. If you also set an
+* error-0handler then that is called for
+* the time-error as well.
+*
+* Below we dont realy test for the errors
+* but you should see the one timing error
+* on the log.
+*/
 
-function timeoutTest ()
+	function timeoutTest ()
 {
 
 	let $TIME_ALLOWED  = 55;//  -1 ;
@@ -921,13 +919,13 @@ function timeoutTest ()
 boxA.onSend
 ( arg =>
 	{ ok(arg === "boxA-data");
-	  log(`boxA done again: ${arg}`);
+	  log(`boxA done: ${arg}`);
 	}
 ) ;
 boxB.onSend
 ( arg =>
 	{ ok (arg === "boxB-data")
-	  log(`boxB done again: ${arg}`);
+	  log(`boxB done: ${arg}`);
 	}
 );
 
@@ -958,7 +956,6 @@ return;
 	function fC(arg )
 	{
 	  let box = new Box('Created by fC');
-
 
 	  setTimeout
 		( () => box.send()
@@ -1098,17 +1095,18 @@ return;
 
   function getDirEnts ()
   {
-	  let box = new Box ('getDirEnts');
+	  let box = new Box ('getDirEnts'); // reurns an instance of public Box
     Fs.readdir (__dirname,  cb);
     return box;
 
 	  function cb(e, entsArray )
-	  { box.send ( ... entsArray );
+	  {  box.send ( ... entsArray );
 	  }
   }
 
 	function gotDirEnts(... $namesArray)
-	{ let statsBox = new Box ('statsBox');
+	{
+	  let statsBox = new Box ('statsBox');
 
 		statsBox.onAdd  (addStat);
 		statsBox.onSend (gotAll)
@@ -1176,9 +1174,7 @@ return;
 	}
 
 	function badF (arg)
-	{
-		debugger
-		// seems we are not currently called.
+	{ //  not currently called ?
 		'abc'.nosuch ()
 	}
 
@@ -1235,7 +1231,7 @@ function promiseTest (allTestsPassedMsg)
 	  let value     = await promise;
 	  // If you debug here it might look like the
 	  // await is over immediately but if you put
-	  // a debugger -statement right after the call
+	  // a debug ger -statement right after the call
 	  // to me  the testAwait() you can see the await
 	  // above causes first a jump out of here
 	  // and we only come back when awaitBox has
@@ -1251,13 +1247,13 @@ function promiseTest (allTestsPassedMsg)
 		ok  (trace.awaited     === 'AWAITED');
     log (`checkTheFuture () PASSED`);
 
-    msg (allTestsPassedMsg) ;
+    tell_tests_passed (allTestsPassedMsg) ;
 	}
 }
 
 function ehX(anError)
 {
-	debugger
+
 }
 
 function eh (anError)

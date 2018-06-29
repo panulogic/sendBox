@@ -21,11 +21,30 @@ let {ok, fails, x, log, err, eq
 
 let SendBox   = require ("../sendBox");
 
+
 testBox ();
 
-
 function testBox ( )
-{ let Box = SendBox ; // Box is  a shorter synonym
+{
+
+/* =========================================
+   Copyright 2018 Class Cloud LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ =========================================== */
+
+  let Box = SendBox ; // Box is  a shorter synonym
   let $errors = [];
 
   mostBasicTest       ();
@@ -63,7 +82,7 @@ if (typeof require === 'undefined')
 { s = `<h1>${s}</h1>`;
  s += `
 <pre><tt>
-${testCisf}
+${testBox}
 </tt></pre>
 `;
 }
@@ -84,39 +103,6 @@ ${testCisf}
   }
 }
 
- /* -------------------------------------
-		  .onSend
-		  ( json =>
-			  { let parsed      = JSON.parse(json);
-			    let arr         = parsed.RestResponse.result;
-			    let rix         = Math.floor (Math.random() * arr.length);
-			    let record      = arr [rix];
-			    let countryName = record.name;
-			    debugger
-			    return countryName;
-			  }
-		  );
-		  ---------------------------------- */
-/*
-point: When you return a box its future results
-will be automatically sent to the next handler.
-If you add an onsend handler to that box here
-that handler will also get executed BUT tits
-reuslt will vanish in thin air unless you also
-added  follower handlers to it.
-
-You should not add handlers to the box you return
-because system will do that for you. But the
-system added handler will executed in a
-parallel lane of its own you can not talk to
-that in any way.
-
-Point is in async you muts end in some final
-function which has a side-effect, so it better
-typiocally be a single end point so you know
-where to observe the creation of the side-effect
-adn where to test it.
- */
 
 // "http://www.google.com?q=" + countryName
 
@@ -170,23 +156,6 @@ adn where to test it.
 		  // parse html as json.
 
 
-    // "http://restcountries.eu/rest/v2/name/"+ countryName
-		// SEE also: https://github.com/apilayer/restcountries
-
-/*
-SOME OPEN DATA RESOURCES:
-
-// SEE ALSO: https://data.cityofnewyork.us/resource/hpgt-r7uq.json
-
-// maybe better: https://data.cityofnewyork.us/City-Government/Bid-Tabulations/9k82-ys7w
-// yes because updated weekly
-// api: https://data.cityofnewyork.us/resource/rnaw-im4y.json
-
-// AND: wifi hotspot locations:
-// https://data.cityofnewyork.us/City-Government/NYC-Wi-Fi-Hotspot-Locations/yjub-udmw 
-// curl https://data.cityofnewyork.us/resource/24t3-xqyv.json
-*/
- 
   function getUrlPromise (url)
 	{ return Box.fromUrl (url ).promise();
 	}
@@ -197,7 +166,7 @@ async function httpTestWithAwait ()
 {
 
   let u = 'https://panulogic.github.io/sendbox/package.json';
-  // if the host does not exist we get a different
+  // If the host does not exist we get a different
   // error because if host does but url does not exist
   // then the site typically gives us an error page.
 
@@ -205,8 +174,7 @@ async function httpTestWithAwait ()
   getUrlPromise (u)
   .catch
   ( e =>
-    { debugger
-       // Below we just report if we didn't
+    {   // Below we just report if we didn't
         // get the content, do nopt cause an error.
     }
   );
@@ -246,7 +214,7 @@ function httpTestWithBox ()
 
 
 function EH_in_httpTestWithBox (e)
-{ debugger
+{
      log (` 
 	   HTTP-TEST ERROR: httpTestWithBox() FAILED
 	   to get url
@@ -258,7 +226,7 @@ function EH_in_httpTestWithBox (e)
 
   box.onSend
 	( c =>
-		{ debugger
+		{
 		  content = c;
 		  if (  content.match(/sendbox/i))
 	       { log (` 
@@ -346,13 +314,13 @@ function syncTest ()
 	ok (fc_result[0] === 1000); // 1 * 10 * 10 * 10
 
 	fails (_=> boxA.send (4,5,6));
-  // fails because a box can be sent only ONCE.
+  // fails because a box can be sent ONLY ONCE.
   // Because async computation basically relies
   // on side-effects you typically want each
   // side-effect to happen only once so it is
   // PROBABALY a coding error if it would happen
   // multiple times. You can always create another
-  // similar box if ytou want the same effect
+  // similar box if you want the same effect
   // multiple times.
 
 	return ;
@@ -690,8 +658,7 @@ function errorTest ()
 	  return n * 10;
 	}
 	function fc  (n, ... moreArgs)
-	{ debugger
-	  throw "we never come here because earlier an error stopped the pipeline"
+	{ throw "we never come here because earlier an error stopped the pipeline"
 	}
 }
 
@@ -1200,9 +1167,7 @@ return;
 	}
 
 	function badF (arg)
-	{
-		debugger
-		// seems we are not currently called.
+	{ //  not currently called ?
 		'abc'.nosuch ()
 	}
 
@@ -1259,7 +1224,7 @@ function promiseTest (allTestsPassedMsg)
 	  let value     = await promise;
 	  // If you debug here it might look like the
 	  // await is over immediately but if you put
-	  // a debugger -statement right after the call
+	  // a debug ger -statement right after the call
 	  // to me  the testAwait() you can see the await
 	  // above causes first a jump out of here
 	  // and we only come back when awaitBox has
@@ -1281,7 +1246,7 @@ function promiseTest (allTestsPassedMsg)
 
 function ehX(anError)
 {
-	debugger
+
 }
 
 function eh (anError)
