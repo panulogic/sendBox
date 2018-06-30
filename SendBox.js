@@ -68,7 +68,7 @@ a build.
   const SEND_BOX      = _Box()  ;  // for the browsers, create a global
 
   var SendBox  = SEND_BOX;
-  SendBox.v    = "0.9.8";
+  SendBox.v    = "0.9.9";
 
   var CISF;
 	if (typeof module !== "undefined")  // in the browser it is undefined
