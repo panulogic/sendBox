@@ -111,12 +111,24 @@ ${testBox}
 	function composeTest ()
 	{
 
+debugger
+// welll note if we load the jsons from, relative
+// urls then in fact the current way we retrueve
+// utsl would not work it expecst http server.
+// But the idea of this test really is that
+// we should be able to retrieve data from the
+// web so therefore let us use our github
+// pages top serve the jsons, meaning we muts
+// use abs-urls here.
+
     new Box().onSend
     ( produceCountriesList
     , selectCountry
     , retrieveCapitals
     , tellCountryAndCapital
-    ).send ("http://country.io/names.json") ;
+    ).send ("https://panulogic.github.io/sendbox/test/countries.json");
+
+    // ("http://country.io/names.json") ;
 
 	  function produceCountriesList ( url )
 		{ return Box.fromUrl (url)
@@ -132,8 +144,17 @@ ${testBox}
 			return [key, countryName];
 		}
 
+
     function retrieveCapitals (countryCode, countryName )
-	  { let b = Box.fromUrl ("http://country.io/capital.json");
+	  {
+	    // let b = Box.fromUrl ("http://country.io/capital.json");
+	    debugger
+	    let b = Box.fromUrl
+	    ("https://panulogic.github.io/sendbox/test/capitals.json");
+
+
+//	  ("https://panulogic.github.io/sendbox/test/capitals.json"
+
 		  b.add (countryCode)
 		   .add (countryName);
       return b;

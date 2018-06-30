@@ -3,9 +3,8 @@
 , "version"     : "0.9.8"
 , "description" : "Simple Alternative to Promises"
 , "main"        : "sendbox.js"
-,
-  "scripts":
-  {  "test": "node test.js"
+, "scripts"     :
+  {  "test"     : "node ./test/test.js"
   }
   , "author"  : "Panu Viljamaa"
   , "license" : "Apache 2.0"
