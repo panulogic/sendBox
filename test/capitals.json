@@ -1,9 +1,9 @@
 
-{ 1: "Helsinki"
-, 2: "Stockholm"
-, 3: "Oslo"
-, 4: "Copenhagen"
-, 5: "Reykjavik"
+{ "1": "Helsinki"
+, "2": "Stockholm"
+, "3": "Oslo"
+, "4": "Copenhagen"
+, "5": "Reykjavik"
 }
 
 

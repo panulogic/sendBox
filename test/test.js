@@ -16,8 +16,7 @@
 	 =========================================== */
 
 
-let {ok, fails, x, log, err, eq
-    } = require ('./cisf/cisf.js');
+let  CISF = require ('./cisf/cisf.js');
 
 let SendBox   = require ("../sendBox");
 
@@ -26,6 +25,8 @@ testBox ();
 
 function testBox ( )
 {
+  let {ok, fails, x, log, err, eq
+      }  = CISF;
 
 /* =========================================
    Copyright 2018 Class Cloud LLC
@@ -110,25 +111,12 @@ ${testBox}
 		  
 	function composeTest ()
 	{
-
-debugger
-// welll note if we load the jsons from, relative
-// urls then in fact the current way we retrueve
-// utsl would not work it expecst http server.
-// But the idea of this test really is that
-// we should be able to retrieve data from the
-// web so therefore let us use our github
-// pages top serve the jsons, meaning we muts
-// use abs-urls here.
-
     new Box().onSend
     ( produceCountriesList
     , selectCountry
     , retrieveCapitals
     , tellCountryAndCapital
     ).send ("https://panulogic.github.io/sendbox/test/countries.json");
-
-    // ("http://country.io/names.json") ;
 
 	  function produceCountriesList ( url )
 		{ return Box.fromUrl (url)
@@ -147,13 +135,9 @@ debugger
 
     function retrieveCapitals (countryCode, countryName )
 	  {
-	    // let b = Box.fromUrl ("http://country.io/capital.json");
 	    debugger
 	    let b = Box.fromUrl
 	    ("https://panulogic.github.io/sendbox/test/capitals.json");
-
-
-//	  ("https://panulogic.github.io/sendbox/test/capitals.json"
 
 		  b.add (countryCode)
 		   .add (countryName);
@@ -170,7 +154,6 @@ debugger
 		}
 	}
 
-
 		  // beware if a url does not exist you often
 		  // get an error page with status 200 . Then
 		  // the only error will be when we try to
@@ -180,7 +163,6 @@ debugger
   function getUrlPromise (url)
 	{ return Box.fromUrl (url ).promise();
 	}
-
 
 
 async function httpTestWithAwait ()
